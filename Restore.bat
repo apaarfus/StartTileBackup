@@ -46,9 +46,13 @@ robocopy "%BACKUPDIR%Caches" "%LocalAppData%\Microsoft\Windows\Caches" /E
 rmdir /s/q "%LocalAppData%\Microsoft\Windows\Explorer"
 robocopy "%BACKUPDIR%Explorer" "%LocalAppData%\Microsoft\Windows\Explorer" /E
 
+rmdir /s/q "%AppData%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
+robocopy "%BACKUPDIR%taskbarshortcuts" "%AppData%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar" /E
+
 
 echo ### Registry key restore in progress!
 reg import "%BACKUPDIR%CloudStore.reg"
+reg import "%BACKUPDIR%Taskbar_Backup.reg"
 
 
 echo ### Restarting File Explorer...

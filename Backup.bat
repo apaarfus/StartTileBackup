@@ -42,10 +42,12 @@ echo ### File backup in progress!
 robocopy "%LocalAppData%\Microsoft\Windows\CloudStore" "%BACKUPDIR%CloudStore" /E
 robocopy "%LocalAppData%\Microsoft\Windows\Caches" "%BACKUPDIR%Caches" /E
 robocopy "%LocalAppData%\Microsoft\Windows\Explorer" "%BACKUPDIR%Explorer" /E
+robocopy "%AppData%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar" "%BACKUPDIR%taskbarshortcuts" /E
 
 
 echo ### Registry key backup in progress!
 reg export HKCU\Software\Microsoft\Windows\CurrentVersion\CloudStore "%BACKUPDIR%CloudStore.reg"
+reg export HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband "%BACKUPDIR%Taskbar_Backup.reg" /Y
 
 
 echo ### Restarting File Explorer...
