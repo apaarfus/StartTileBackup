@@ -1,14 +1,15 @@
 # StartTileBackup
-A simple batch script to backup and restore the Start menu tiles. Requires at least Windows 10 Fall Creators Update.
+This project is a fork of [this one](https://github.com/TurboLabIt/StartTileBackup). I made a different fork because I couldn't create a branch on the original project.
 
-**Parli italiano?** » Leggi: [Menu Start: come creare un backup dei Riquadri animati (Live Tiles) di Windows 10 Fall Creators Update (1709)](https://turbolab.it/1241)
+I merged the solution of two sources: here:  
+https://www.tenforums.com/tutorials/67665-backup-restore-taskbar-toolbars-windows-10-a.html
 
-![spotlight](https://turbolab.it/immagini/med/guida-windows-10-menu-start-dove-sono-salvati-come-creare-backup-riquadri-animati-live-tiles-partendo-tiledatalayer-backup-start-menu-windows-10-8390.img)
+and here:
+https://winaero.com/blog/how-to-backup-and-restore-taskbar-pinned-apps-in-windows-10/
+
+And added them to the original scripts from the forked project.
+
+This way, when backing up / restoring the start menu, the taskbar is also copied over. In my short test it seems to remember the order of the taskbar items just fine as well.
 
 
-# Backup
-Run `Backup.bat` as administrator to backup the current tiles. The backup files are dumped in the `backup/` directory inside the script directory, overwriting every previous backup copy.
 
-
-# Restore
-Run `Restore.bat` as administrator to restore the last backup.
