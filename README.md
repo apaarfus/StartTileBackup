@@ -15,5 +15,7 @@ The lines I've added to add this functionality are
 - Backup.bat: 45, 50
 - Restore.bat: 49-50, 55
 
+Aside from adding those lines, I have not edited the original scripts.
+
 
 
