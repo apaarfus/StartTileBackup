@@ -11,5 +11,9 @@ And added them to the original scripts from the forked project.
 
 This way, when backing up / restoring the start menu, the taskbar is also copied over. In my short test it seems to remember the order of the taskbar items just fine as well.
 
+The lines I've added to add this functionality are 
+- Backup.bat: 45, 50
+- Restore.bat: 49-50, 55
+
 
 
