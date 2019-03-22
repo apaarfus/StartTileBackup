@@ -22,19 +22,18 @@ The original project and fork split the backup/restoration functionality into se
   * Task Bar registry key
   * Robocopy options
   * Robocopy command
-* Added Logging
-  * Stores logs in `script_dir\log`
-  * Log files named by current datestamp
-  * Each log line is time-stamped with `[YYYY-MM-DD@HH:MM:SS]`
-  * Seperator
 * Command-Line Arguments, albeit basic
   * `/h, /?` Show a help text
   * `/b` Run in Backup mode
   * `/r` Run in Restoration mode
-  * `/bd:<path>` Set backup directory location
+  * `/bd:<path>` Set backup/restore directory location
+    * Allows multiple backups to be made, though not automatically
+    * Allows a choice of which backup to restore, rather than the most-recent
   * `/ld:<path>` Set logging directory location
   * `/lf:<file>` Set log file name (and extension)
-* Checks for critical errors prior to running -- aborts if found
+* Error Checking
+  * Specifically checks for undefined variables and non-existent locations
+  * Notifies user of each issue that presents itself
 * Added comments for some added readability.  Sort of, anyway.
 * Split functionality into, well, functions
 * Clears memory prior to quitting
@@ -42,9 +41,11 @@ The original project and fork split the backup/restoration functionality into se
 ## Planned "*Enhancements*"
 I'd like to get to these at some point, but we'll see.
 * Split backups into date/name-specified groups
-  * To allow for multiple backup/restoration jobs to be store in one location -- portability?
+  * That, or replacing the backup structure with a date-time stamp `YYYY-MM-DD_HH-MM-SS`, for example
 * Backup and Restorage of Windows 7 StartMenu pins
   * Not too difficult, but maybe a little over the top
 * General clean-up -- at least for what's doable with batch
 * Maybe a port to PowerShell?  Hmm...I need to learn PS first though
   * Alternative, maybe a GitBash/Cygwin64 port would be less awful
+* Logging --> The ground-work is there, I just need to add in the logic for it
+* True silent functionality -- meaning nothing logged to the prompt
