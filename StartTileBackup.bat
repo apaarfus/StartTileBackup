@@ -1,6 +1,6 @@
 :: StartTileBackup.bat
 :: Author:		Alex Paarfus <apaarfus@wtcox.com>
-:: Date:		2019-03-19
+:: Date:		2019-03-22
 ::
 :: Backups/Restores TaskBar and StartMenu configurations in Windows 10
 ::
@@ -20,7 +20,7 @@ setlocal enableextensions
 
 :: Check for Admin Rights
 net session >nul 2>&1
-if not errorlevel 0 (
+if not %errorlevel% equ 0 (
 	echo Error: ADMIN REQUIRED
 	call :logMsg "ADMIN REQUIRED" "error"
 	goto :eof
@@ -29,17 +29,17 @@ if not errorlevel 0 (
 
 :: Vars
 set "datestamp=%date:~10,4%-%date:~4,2%-%date:~7,2%"
-set "_bdir=%~dp0.\bkup"
-set "_ldir=%~dp0.\log"
-set "_lgf=%datestamp%.log"
+set "_bdir=bkup"
+::set "_ldir=log"
+::set "_lgf=%datestamp%.log"
 set "_cloudDir=%localappdata%\Microsoft\Windows\CloudStore"
 set "_cacheDir=%localappdata%\Microsoft\Windows\Caches"
 set "_explorerDir=%localappdata%\Microsoft\Windows\Explorer"
-set "_taskbarDir=%appdata%\Microsoft\Internet Explorer\User Pinned\TaskBar"
+set "_taskbarDir=%appdata%\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
 set "_smkey=HKCU\Software\Microsoft\Windows\CurrentVersion\CloudStore"
 set "_tbkey=HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Taskband"
-set "buOpt=/e /x /mt /xo /fft /r:1 /w:5 /xjd /xjf"
-set "buCmd=robocopy %buOpt%"
+set "buOpt=/e /np /nfl /ndl /njh /njs /ns /nc"
+set "buCmd=robocopy"
 set "_SEP=++++++++++++++++++++++++++++++++++++++++++++++++++"
 set "_proc=b"
 set "_FAIL=0"
@@ -54,25 +54,39 @@ if not "%~1."=="." (
 		if %_FAIL% equ 1 goto :paLoopEnd
 		
 		:: Determine if named argument
-		echo "%~1" | find ":" >nul
-		if errorlevel 0 goto :namedArg
-		cd .
+		if not "%~2."=="." (
+			cd .
+			echo %~2 | findstr /b /c:"--" >nul || (
+				if /i "%~1"=="--bd" set "_bdir=%~2" & shift & goto :paLoopNext
+				if /i "%~1"=="--ld" set "_ldir=%~2" & shift & goto :paLoopNext
+				if /i "%~1"=="--lf" set "_lgf=%~2" & shift & goto :paLoopNext
+				echo Unknown Option: "%~1 %~2"
+			)
+		)
 		
 		:: Single Args
-		if /i "%~1"=="/h" call :showHelp & goto :paLoopEnd
-		if /i "%~1"=="/?" call :showHelp & goto :paLoopEnd
-		if /i "%~1"=="/b" set "_proc=b" & goto :paLoopNext
-		if /i "%~1"=="/r" set "_proc=r" & goto :paLoopNext
-		goto :paLoopNext
-		
-		:: Named Args
-		:namedArg
-		for /f "tokens=1,2* delims=:" %%a in ("%~1") do call :paNamedArgs "%%~a" "%%~b"
+		cd .
+		echo %~1 | find "--" >nul 2>&1
+		if %errorlevel% neq 0 goto :paLoopNext
+		if /i "%~1"=="--h" call :showHelp & set "_FAIL=1" & goto :paLoopEnd
+		if /i "%~1"=="--?" call :showHelp & set "_FAIL=1" & goto :paLoopEnd
+		if /i "%~1"=="--b" set "_proc=b" & goto :paLoopNext
+		if /i "%~1"=="--r" set "_proc=r" & goto :paLoopNext
 	:paLoopNext
 	shift
 	goto :paLoopStart
 )
 :paLoopEnd
+:: ----------------------------------------------------------------------------
+
+:: Check Arguments
+call :checkOpts
+:: ----------------------------------------------------------------------------
+
+:: Path Updates
+cd .
+echo "%_bdir%" | find ":" >nul || set "_bdir=%~dp0.\%_bdir%"
+::set "_ldir=%~dp0.\%_ldir%"
 :: ----------------------------------------------------------------------------
 
 :: Run
@@ -91,20 +105,19 @@ goto :eof
 :bkup
 	:: Init Environment
 	cd "%~dp0"
-	"%~d0"
 	
 	:: Remove previous backup if necessary; then Make Directory
-	if exist "%_bdir%" rmdir /sq "%_bdir%"
-	mkdir "%_bdir%"
+	if exist "%_bdir%" rd /s /q "%_bdir%"
+	md "%_bdir%"
 	
 	:: Kill Explorer -- required to read data from system files
 	call :kex
 	
 	:: Backup data to backup directory
-	%buCmd% "%_cloudDir%" "%_bdir%\CloudStore"
-	%buCmd% "%_cacheDir%" "%_bdir%\Caches"
-	%buCmd% "%_explorerDir%" "%_bdir%\Explorer"
-	%buCmd% "%_taskbarDir%" "%_bdir%\TaskBar"
+	%buCmd% "%_cloudDir%" "%_bdir%\CloudStore" %buOpt%
+	%buCmd% "%_cacheDir%" "%_bdir%\Caches" %buOpt%
+	%buCmd% "%_explorerDir%" "%_bdir%\Explorer" %buOpt%
+	%buCmd% "%_taskbarDir%" "%_bdir%\TaskBar" %buOpt%
 	
 	:: Extract registry data to backup directory
 	reg export "%_smkey%" "%_bdir%\CloudStore.reg"
@@ -119,7 +132,6 @@ goto :eof
 :rstr
 	:: Initialize Environment
 	cd "%~dp0"
-	"%~d0"
 	
 	:: Check for Backup Dir
 	if not exist "%_bdir%" (
@@ -132,53 +144,86 @@ goto :eof
 	call :kex
 	
 	:: Remove system directories to make way for the soon-to-be restored data
-	rmdir /sq "%_cloudDir%"
-	rmdir /sq "%_cacheDir%"
-	rmdir /sq "%_explorerDir%"
-	rmdir /sq "%_taskbarDir%"
+	rd /s /q "%_cloudDir%"
+	rd /s /q "%_cacheDir%"
+	rd /s /q "%_explorerDir%"
+	rd /s /q "%_taskbarDir%"
 	
 	:: Restore data to system directories
-	%buCmd% "%_bdir%\CloudStore" "%_cloudDir%"
-	%buCmd% "%_bdir%\Caches" "%_cacheDir%"
-	%buCmd% "%_bdir%\Explorer" "%_explorerDir%"
-	%buCmd% "%_bdir%\TaskBar" "%_taskbarDir%"
+	%buCmd% "%_bdir%\CloudStore" "%_cloudDir%" %buOpt%
+	%buCmd% "%_bdir%\Caches" "%_cacheDir%" %buOpt%
+	%buCmd% "%_bdir%\Explorer" "%_explorerDir%" %buOpt%
+	%buCmd% "%_bdir%\TaskBar" "%_taskbarDir%" %buOpt%
 	
 	:: Restore registry keys
-	reg import "%_smkey%"
-	reg import "%_tbkey%" 
+	reg import "%_bdir%\CloudStore.reg"
+	reg import "%_bdir%\Taskband.reg"
 	
 	:: Restart Explorer
 	explorer.exe
 goto :eof
 :: ----------------------------------------------------------------------------
 
-:: Parse Named Arguments -- %1 = switch, %2 = param
-:paNamedArgs
-	if "%~1." goto :eof
-	if "%~2." goto :eof
+:: Check Options
+:checkOpts
+	:: If already in failed state, skip
+	if %_FAIL% gtr 0 goto :eof
 	
-	:: Parse
-	:: Backup Directory
-	if /i "%~1"=="/bd" (
-		set "_bdir=%~2"
-		if not exist "%~2" (
-			echo "Error, Backup directory does not exist"
-			call :logMsg "Backup directory does not exist: %~2" "error"
-			set /p "mdc=Create directory? (y/N): "
-			if /i "%mdc%"=="y" mkdir "%~2"
-			set "mdc="
-			set "_FAIL=1"
-		)
-		goto :eof
-	)
-	:: Log Directory
-	if /i "%~1"=="/ld" (
-		set "_ldir=%~2"
-		if not exist "%~2" mkdir "%~2"
-		goto :eof
-	)
-	:: Log File
-	if /i "%~1"=="/lf" set "_lgf=%~2" & goto :eof
+	:: Nul Value checks
+	if "%datestamp%."=="." call :notifyFailure "0"
+	if "%_bdir%."=="." call :notifyFailure "1"
+	::if "%_ldir%."=="." call :notifyFailure "2"
+	::if "%_lgf%."=="." call :notifyFailure "3"
+	if "%_cloudDir%."=="." call :notifyFailure "4"
+	if "%_cacheDir%."=="." call :notifyFailure "5"
+	if "%_explorerDir%."=="." call :notifyFailure "6"
+	if "%_taskbarDir%."=="." call :notifyFailure "7"
+	if "%_smkey%."=="." call :notifyFailure "8"
+	if "%_tbkey%."=="." call :notifyFailure "9"
+	if "%buOpt%."=="." call :notifyFailure "10"
+	if "%buCmd%."=="." call :notifyFailure "11"
+	if "%_proc%."=="." call :notifyFailure" "12
+	
+	:: Invalid Locations
+	::if not exist "%~dp0.\%_bdir%" call :notifyFailure "13"
+	::if not exist "%~dp0.\%_ldir%" call :notifyFailure "14"
+	if not exist "%_cloudDir%" call :notifiyFailure "15"
+	if not exist "%_cacheDir%" call :notifyFailure "16"
+	if not exist "%_explorerDir%" call :notifyFailure "17"
+	if not exist "%_taskbarDir%" call :notifyFailure "18"
+goto :eof
+:: ----------------------------------------------------------------------------
+
+:: Notify user of Failure State -- Args: %1 = State
+:notifyFailure
+	if "%~1."=="." goto :eof
+	set "nulstr=ERROR: Var not defined:"
+	set "badstr=ERROR: Directory does not exist:"
+	
+	:: Reports
+	if %~1 equ 0 echo %nulstr% datestamp & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 1 echo %nulstr% backup directory & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 2 echo %nulstr% logging directory & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 3 echo %nulstr% Log File & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 4 echo %nulstr% Cloud Store directory & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 5 echo %nulstr% Caches directory & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 6 echo %nulstr% Explorer directory & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 7 echo %nulstr% Task Bar directory & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 8 echo %nulstr% Start Menu registry location & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 9 echo %nulstr% Task Bar registry location & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 10 echo %nulstr% Backup Command Options & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 11 echo %nulstr% Backup Command & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 12 echo %nulstr% Process Selection & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 13 echo %badstr% "%_bdir%" & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 14 echo %badstr% "%_ldir%" & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 15 echo %badstr% "%_cloudDir%" & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 16 echo %badstr% "%_cacheDir%" & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 17 echo %badstr% "%_explorerDir%" & set "_FAIL=1" & goto :qnfs
+	if %~1 equ 18 echo %badstr% "%_taskbarDir%" & set "_FAIL=1" & goto :qnfs
+	
+	:qnfs
+	set "nulstr="
+	set "dirstr="
 goto :eof
 :: ----------------------------------------------------------------------------
 
@@ -194,7 +239,7 @@ goto :eof
 	set "_isErr="
 	
 	:: Check for log directory
-	if not exist "%_ldir%" mkdir "%_ldir%"
+	if not exist "%_ldir%" md "%_ldir%"
 	
 	:: State/Type
 	if "%~2."=="." goto :eof
@@ -220,16 +265,16 @@ goto :eof
 	echo StartTileBackup.bat ^[Options^]
 	echo Please note that all options must be encapsulated in double-quotes
 	echo For example:
-	echo     "/x"
-	echo     "/y:name"
+	echo     "--x"
+	echo     "--y" "name"
 	echo.
 	echo Options:
-	echo     /h, /?                Show this help message
-	echo     /b                    Run in Backup Mode ^(default^)
-	echo     /r                    Run in Restoration Mode
-	echo     /bd:^<path^>          Specify path to backup directory location
-	echo     /ld:^<path^>          Specify path to log directory
-	echo     /lf:^<file^>          Specify the file name and extension to use in logging
+	echo     --h, --?                Show this help message
+	echo     --b                    Run in Backup Mode ^(default^)
+	echo     --r                    Run in Restoration Mode
+	echo     --bd ^<path^>          Specify path to backup directory location
+	echo     --ld ^<path^>          Specify path to log directory
+	echo     --lf ^<file^>          Specify the file name and extension to use in logging
 	echo.
 goto :eof
 :: ----------------------------------------------------------------------------
