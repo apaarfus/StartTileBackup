@@ -38,6 +38,9 @@ The original project and fork split the backup/restoration functionality into se
 * Split functionality into, well, functions
 * Clears memory prior to quitting
 
+## Git Bash Compatability
+I've also added an additional bash shell script, for use with Git Bash for Windows; including the portable variant.
+
 ## Planned "*Enhancements*"
 I'd like to get to these at some point, but we'll see.
 * Split backups into date/name-specified groups
