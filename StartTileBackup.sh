@@ -39,6 +39,19 @@ checkOpts() {
 
 	# Check for administrative rights
 	if [ "$rv" -eq 0 ] && ! net session >/dev/null 2>&1; then printErr "admin"; rv="1"; fi
+	
+	# Check for Windows Version
+	if [ "$rv" -eq 0 ]; then
+		local verstr=""			# Version String
+		if [ -f "$(win2pos "$WINDIR")/System32/wbem/WMIC.exe" ]; then verstr="$(wmic os get version | grep -E "^[0-9]" | awk -F "\." '{print $1 "." $2}')"; else
+			verstr="$(cmd //c "ver 2>&1" | awk '{print $3,$4}' | sed 's/\[version //i;s/\]//' | awk -F "\." '{print $1 "." $2}')"
+		fi
+		case "$verstr" in
+			10.0 )		echo > /dev/null;;
+			* )		printErr "ver" "Wrong Windows Version"; rv="1";;
+		esac
+		unset verstr
+	fi
 
 	# Check for null values
 	if [ "$rv" -eq 0 ] && [ -z "$_path_script_root" ]; then printErr "null" "_path_script_root"; rv="1"; fi
@@ -229,6 +242,12 @@ show_help() {
 	printf "%s\n" "\t--log-dir\t<path>\t\tPath to Log storage location"
 	printf "%s\n"
 }
+
+# Convert Windows to POSIX path -- Args: $1 = path
+win2pos() { if [ -n "$1" ]; then printf "$1" | sed 's/://;s/\\/\//g'; fi; }
+
+# Convert POSIX to Windows path -- Args: $1 = path
+pos2win() { if [ -n "$1" ]; then printf "$1" | sed 's/^\///;s/\//\\/g;s/^./0:/'; fi; }
 
 # Backup Process
 tileBackup() {
@@ -436,6 +455,25 @@ if ! printf "$_path_sys_cloud_store" | grep -q "$_path_sys_appdata_local"; then 
 if ! printf "$_path_sys_caches" | grep -q "$_path_sys_appdata_local"; then _path_sys_caches="$_path_sys_appdata_local/$_path_sys_caches"; fi
 if ! printf "$_path_sys_explorer" | grep -q "$_path_sys_appdata_local"; then _path_sys_explorer="$_path_sys_appdata_local/$_path_sys_explorer"; fi
 if ! printf "$_path_sys_task_bar" | grep -q "$_path_sys_appdata_roaming"; then _path_sys_task_bar="$_path_sys_appdata_roaming/$_path_sys_task_bar"; fi
+
+# Convert vars to POSIX-compliant paths
+_path_script_root="$(win2pos "$_path_script_root")"
+_path_script_profile="$(win2pos "$_path_script_profile")"
+_path_script_data="$(win2pos "$_path_script_data")"
+_path_script_logs="$(win2pos "$_path_script_logs")"
+_path_script_data_cloud_store="$(win2pos "$_path_script_data_cloud_store")"
+_path_script_data_caches="$(win2pos "$_path_script_data_caches")"
+_path_script_data_explorer="$(win2pos "$_path_script_data_explorer")"
+_path_script_data_task_bar="$(win2pos "$_path_script_data_task_bar")"
+_path_script_data_registry="$(win2pos "$_path_script_data_registry")"
+_path_script_data_registry_start_menu="$(win2pos "$_path_script_data_registry_start_menu")"
+_path_script_data_registry_task_bar="$(win2pos "$_path_script_data_registry_task_bar")"
+_path_sys_appdata_roaming="$(win2pos "$_path_sys_appdata_roaming")"
+_path_sys_appdata_local="$(win2pos "$_path_sys_appdata_local")"
+_path_sys_cloud_store="$(win2pos "$_path_sys_cloud_store")"
+_path_sys_caches="$(win2pos "$_path_sys_caches")"
+_path_sys_explorer="$(win2pos "$_path_sys_explorer")"
+_path_sys_task_bar="$(win2pos "$_path_sys_task_bar")"
 
 # ##--------------------------------------------##
 # #|		Handle Arguments		|#
